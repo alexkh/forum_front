@@ -26,8 +26,12 @@ function App() {
           }
         });
         const result = await response.json();
+        if(result && result.error) {
+          console.error('Error fetching threads list:', result.error)
+          return
+        }
         setData(result);
-        console.log(result)
+        console.log(result);
       } catch (error) {
         console.error('Error fetching threads list:', error);
       }
