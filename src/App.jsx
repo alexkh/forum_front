@@ -14,10 +14,12 @@ function App() {
     return '';
   });
   const [shouldRefetch, setShouldRefetch] = useState(true);
-  const [data, setData] = useState([]);
+  const [threads, setThreads] = useState([]);
+  const [thread, setThread] = useState([]);
+  const [tid, setTid] = useState(0);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchThreads = async () => {
       try {
         const response = await fetch('http://localhost:8080/api/forum/threads', {
           method: 'GET',
@@ -30,7 +32,7 @@ function App() {
           console.error('Error fetching threads list:', result.error)
           return
         }
-        setData(result);
+        setThreads(result);
         console.log(result);
       } catch (error) {
         console.error('Error fetching threads list:', error);
@@ -38,7 +40,7 @@ function App() {
     };
 
     if(jwt && shouldRefetch) {
-      fetchData();
+      fetchThreads();
       setShouldRefetch(false);
     }
   }, [shouldRefetch, jwt]);
@@ -101,20 +103,61 @@ function App() {
     setJwt('');
   }
 
+  const handleOpenThread = async (e) => {
+    console.log('opening thread', e.target.dataset.dbkey);
+      try {
+        const response = await fetch('http://localhost:8080/api/forum/posts/'
+            + parseInt(e.target.dataset.dbkey), {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + jwt,
+          }
+        });
+        const result = await response.json();
+        if(result && result.error) {
+          console.error('Error fetching thread:', result.error)
+          return
+        }
+        setThread(result);
+        setTid(parseInt(e.target.dataset.dbkey));
+        console.log(result);
+      } catch (error) {
+        console.error('Error fetching threads list:', error);
+      }
+
+  }
+
+  const handleGoHome = (e) => {
+    setTid(0);
+  }
+
   return (
     <>
       <div>
-        {!jwt? <LoginForm onLoggedIn={handleLogin}/> : <>
-        <button onClick={handleLogout}>Logout</button>
-        <h1>Forum Threads:</h1>
-        <input type="text" className="new_thread_name"/>
-        <button onClick={handleNewThread}>Add New Thread</button>
-        <ul>
-          { data.map((item) => (
-            <li key={item.id}>{item.title} {item.uid==1?
-            <button onClick={() => handleDelete(item)}>Delete Thread!</button>: ''}</li>
-          )) }
-        </ul> </>}
+        {!jwt? <LoginForm onLoggedIn={handleLogin}/> :
+          !tid? <>
+            <button onClick={handleLogout}>Logout</button>
+            <h1>Forum Threads:</h1>
+            <input type="text" className="new_thread_name"/>
+            <button onClick={handleNewThread}>Add New Thread</button>
+            <ul>
+              { threads.map((item) => (
+                <li key={item.id} className="thread_item" data-dbkey={item.id}
+                  onClick={handleOpenThread}>{item.title}</li>
+              )) }
+            </ul>
+          </>:
+          
+          <>
+            <button onClick={handleLogout}>Logout</button>
+            <button onClick={handleGoHome}>Back to Threads list</button>
+            <h1>Thread {tid}: </h1>
+            <ul>
+              { thread.map((item) => (
+                <li key={item.id} data-dbkey={item.id}>{item.text}</li>
+              )) }
+            </ul>
+          </>}
       </div>
     </>
   )
